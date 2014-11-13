@@ -1,89 +1,183 @@
-<html data-cast-api-enabled="true">
+<!DOCTYPE html>
+<html>
 <head>
-<title>Hello World Chrome Sender</title>
-<link rel="stylesheet" type="text/css" href="../css/sender.css" />
+<title>Hello World</title>
+<style type="text/css">
+html, body, #wrapper {
+  height:100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+#wrapper td {
+  vertical-align: middle;
+  text-align: center;
+}
+input {
+  font-family: "Arial", Arial, sans-serif;
+  font-size: 40px;
+  font-weight: bold;
+}
+.border {
+  border: 2px solid #cccccc;
+  border-radius: 5px;
+}
+.border:focus {
+  outline: none;
+  border-color: #8ecaed;
+  box-shadow: 0 0 5px #8ecaed;
+}
+</style>
+<script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+
+<script type="text/javascript">
+var applicationID = '51F2093F';
+var namespace = 'urn:x-cast:com.google.cast.sample.helloworld';
+var session = null;
+
+window['__onGCastApiAvailable'] = function(loaded, errorInfo) {
+  if (loaded) {
+    initializeCastApi();
+  } else {
+    console.log(errorInfo);
+  }
+}
+
+function initializeCastApi() {
+  var sessionRequest = new chrome.cast.SessionRequest(applicationID);
+  var apiConfig = new chrome.cast.ApiConfig(sessionRequest,
+      sessionListener,
+      receiverListener);
+
+  chrome.cast.initialize(apiConfig, onInitSuccess, onError);
+};
+
+function onInitSuccess() {
+  appendMessage("onInitSuccess");
+}
+
+function onError(message) {
+  appendMessage("onError: "+JSON.stringify(message));
+}
+
+function onSuccess(message) {
+  appendMessage("onSuccess: "+message);
+}
+
+function onStopAppSuccess() {
+  appendMessage('onStopAppSuccess');
+}
+
+function sessionListener(e) {
+  appendMessage('New session ID:' + e.sessionId);
+  session = e;
+  session.addUpdateListener(sessionUpdateListener);
+  session.addMessageListener(namespace, receiverMessage);
+}
+
+/**
+ * listener for session updates
+ */
+function sessionUpdateListener(isAlive) {
+  var message = isAlive ? 'Session Updated' : 'Session Removed';
+  message += ': ' + session.sessionId;
+  appendMessage(message);
+  if (!isAlive) {
+    session = null;
+  }
+};
+
+/**
+ * utility function to log messages from the receiver
+ * @param {string} namespace The namespace of the message
+ * @param {string} message A message string
+ */
+function receiverMessage(namespace, message) {
+  appendMessage("receiverMessage: "+namespace+", "+message);
+};
+
+/**
+ * receiver listener during initialization
+ */
+function receiverListener(e) {
+  if( e === 'available' ) {
+    appendMessage("receiver found");
+  }
+  else {
+    appendMessage("receiver list empty");
+  }
+}
+
+/**
+ * stop app/session
+ */
+function stopApp() {
+  session.stop(onStopAppSuccess, onError);
+}
+
+/**
+ * send a message to the receiver using the custom namespace
+ * receiver CastMessageBus message handler will be invoked
+ * @param {string} message A message string
+ */
+function sendMessage(message) {
+  if (session!=null) {
+    session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
+  }
+  else {
+    chrome.cast.requestSession(function(e) {
+        session = e;
+        session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
+        }, onError);
+  }
+}
+
+/**
+ * append message to debug message window
+ * @param {string} message A message string
+ */
+function appendMessage(message) {
+  console.log(message);
+  var dw = document.getElementById("debugmessage");
+  dw.innerHTML += '\n' + JSON.stringify(message);
+};
+
+/**
+ * utility function to handle text typed in by user in the input field
+ */
+function update() {
+  sendMessage(document.getElementById("input").value);
+}
+
+/**
+ * handler for the transcribed text from the speech input
+ * @param {string} words A transcibed speech string
+ */
+function transcribe(words) {
+  sendMessage(words);
+}
+</script>
 </head>
 <body>
-<div class="receiver-div">
-  <h3>Choose A Receiver</h3>
-  <ul class="receiver-list">
-    <li>Looking for receivers...</li>
-  </ul>
-</div>
-<button class="kill" disabled>Kill the Connection</button>
+  <table id="wrapper">
+    <tr>
+      <td>
+        <form method="get" action="JavaScript:update();">
+          <input id="input" class="border" type="text" size="30" onwebkitspeechchange="transcribe(this.value)" x-webkit-speech/>
+        </form>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Debbugging output -->
+  <div style="margin:10px; visibility:hidden;">
+    <textarea rows="20" cols="70" id="debugmessage">
+    </textarea>
+  </div>
+
+  <script type="text/javascript">
+    document.getElementById("input").focus();
+  </script>
 </body>
-
-<script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
-<script src="http://underscorejs.org/underscore-min.js"></script>
-
-<script>
-var cast_api,
-    cv_activity,
-    receiverList,
-    $killSwitch = $('.kill');
-
-window.addEventListener('message', function(event) {
-    if (event.source === window && event.data &&
-      event.data.source === 'CastApi' &&
-      event.data.event === 'Hello') {
-    initializeApi();
-    }
-    });
-
-initializeApi = function() {
-  if (!cast_api) {
-    cast_api = new cast.Api();
-    cast_api.addReceiverListener('51F2093F', onReceiverList);
-  }
-};
-
-onReceiverList = function(list) {
-  if (list.length > 0) {
-    receiverList = list;
-    $('.receiver-list').empty();
-    receiverList.forEach(function(receiver) {
-        $listItem = $('<li><a href="#" data-id="' + receiver.id + '">' + receiver.name + '</a></li>');
-        $listItem.on('click', receiverClicked);
-        $('.receiver-list').append($listItem);
-        });
-  }
-};
-
-receiverClicked = function(e) {
-  e.preventDefault();
-
-  var $target = $(e.target),
-      receiver = _.find(receiverList, function(receiver) {
-          return receiver.id === $target.data('id');
-          });
-
-  doLaunch(receiver);
-};
-
-doLaunch = function(receiver) {
-  if (!cv_activity) {
-    var request = new cast.LaunchRequest('51F2093F', receiver);
-
-    $killSwitch.prop('disabled', false);
-
-    cast_api.launch(request, onLaunch);
-  }
-};
-
-onLaunch = function(activity) {
-  if (activity.status === 'running') {
-    cv_activity = activity;
-
-    cast_api.sendMessage(cv_activity.activityId, 'dev_mountain', {type: 'HelloWorld'});
-  }
-};
-
-$killSwitch.on('click', function() {
-    cast_api.stopActivity(cv_activity.activityId, function(){
-      cv_activity = null;
-
-      $killSwitch.prop('disabled', true);
-      });
-    });
-</script>
 </html>
