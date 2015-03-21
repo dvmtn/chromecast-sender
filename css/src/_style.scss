@@ -1,0 +1,39 @@
+html, body, #wrapper {
+  height:100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+#wrapper td {
+  vertical-align: middle;
+  text-align: center;
+}
+input {
+  font-family: "Arial", Arial, sans-serif;
+  font-size: 3em;
+  font-weight: bold;
+}
+.border {
+  border: 2px solid #cccccc;
+  border-radius: 5px;
+  margin: 20px auto;
+  display: block;
+}
+.border:focus {
+  outline: none;
+  border-color: #8ecaed;
+  box-shadow: 0 0 5px #8ecaed;
+}
+.controls{
+  text-align:center;
+  button{
+    display:inline-block;
+    padding: 16px;
+    font-size: 3em;
+    border-radius:3px;
+    background:rgb(12, 107, 255);
+    margin:2px;
+    color:white;
+  }
+}

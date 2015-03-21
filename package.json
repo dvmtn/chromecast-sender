@@ -1,6 +1,6 @@
 {
-  "name": "new-project",
-  "version": "0.0.0",
+  "name": "chromecast_sender",
+  "version": "0.0.1",
   "devDependencies": {
   }
 }
